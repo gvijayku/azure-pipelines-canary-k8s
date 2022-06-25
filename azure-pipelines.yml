@@ -11,14 +11,32 @@ pool:
 
 variables:
   imageName: azure-pipelines-canary-k8s
+  dockerRegistryServiceConnection: acr-canary-k8s
+  imageRepository: 'azure-pipelines-canary-k8s'
+  containerRegistry: acrdemoeus1.azurecr.io
+  tag: '$(Build.BuildId)'
 
-steps:
-- task: Docker@2
-  displayName: Build and push image
-  inputs:
-    containerRegistry: azure-pipelines-canary-k8s #replace with name of your Docker registry service connection
-    repository: $(imageName)
-    command: buildAndPush
-    Dockerfile: app/Dockerfile
-    tags: |
-      $(Build.BuildId)
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:  
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - task: Docker@2
+      displayName: Build and push image
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: $(imageName)
+        command: buildAndPush
+        Dockerfile: app/Dockerfile
+        tags: |
+          $(tag)
+
+    - publish: manifests
+      artifact: manifests
+
+    - publish: misc
+      artifact: misc
